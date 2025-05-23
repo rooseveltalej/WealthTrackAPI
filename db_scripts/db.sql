@@ -1,0 +1,1 @@
+CREATE DATABASE wealth_track;
