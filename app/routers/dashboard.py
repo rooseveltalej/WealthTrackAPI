@@ -3,8 +3,7 @@
 from datetime import date as pydate
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.params import Body
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, extract
 from sqlmodel import Session, select
 from pydantic import BaseModel
@@ -31,39 +30,32 @@ def _get_year_month(target_date: pydate) -> (int, int):
     return target_date.year, target_date.month
 
 
-class DashboardRequest(BaseModel):
-    email: str
-
-
 @router.get("/", response_model=dict)
-def get_dashboard_data_by_body(
+def get_dashboard_data_by_query(
     *,
-    payload: DashboardRequest = Body(...),
+    email: str = Query(..., description="Correo del usuario"),
+    year: Optional[int] = Query(None, description="Año deseado (opcional)"),
+    month: Optional[int] = Query(None, description="Mes deseado (1-12, opcional)"),
     session: Session = Depends(get_session),
 ):
     """
-    Devuelve datos de finanzas del usuario cuyo email llegue en el body para el mes actual:
-      - Totales: ingreso, gasto, ahorro, inversión
-      - Porcentaje de metas: gasto, ahorro, inversión
-      - Listados: expenses, savings, investments
-      - Distribuciones por categoría: categoryExpenses, categorySavings, categoryInvestments
+    Devuelve datos de finanzas para el usuario identificado por 'email' en el mes y año indicados.
+    Si 'year' o 'month' no se proporcionan, usa el mes y año actuales.
 
-    Body JSON esperado:
-    {
-      "email": "usuario@ejemplo.com"
-    }
+    Ejemplo de llamada:
+      GET /dashboard/?email=usuario@correo.com&year=2023&month=5
     """
     # 1) Obtener el usuario por email
-    stmt_user = select(User).where(User.email == payload.email)
+    stmt_user = select(User).where(User.email == email)
     user = session.exec(stmt_user).one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-
     user_id = user.id
 
-    # 2) Determinar año y mes actuales
-    today = pydate.today()
-    year, month = _get_year_month(today)
+    # 2) Año y mes: si no vienen, usar actuales
+    if year is None or month is None:
+        today = pydate.today()
+        year, month = _get_year_month(today)
 
     # 3) Ingreso mensual total
     stmt_income = (
