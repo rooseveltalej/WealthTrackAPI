@@ -1,9 +1,10 @@
 # app/models.py
 
-from typing import Optional, Annotated
-from datetime import date
+from typing import Optional
+from datetime import date as pydate
 from decimal import Decimal
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import Numeric, Column, String, Integer, Date
 
 # ─── Users ────────────────────────────────────────────────────────────────────
 class UserBase(SQLModel):
@@ -20,3 +21,53 @@ class UserRead(UserBase):
 
 class UserCreate(UserBase):
     password: str
+
+
+
+class Income(SQLModel, table=True):
+    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
+    user_id: int = Field(
+        sa_column=Column("userid", Integer, primary_key=True)
+    )
+    amount: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
+
+class Expense(SQLModel, table=True):
+    __tablename__ = "expenses"  # Minúscula, igual a la tabla real
+    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
+    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    amount: Decimal = Field(sa_column=Column("amount", Numeric(10, 2), nullable=False))
+    category: str = Field(sa_column=Column("category", String(100), nullable=False))
+
+class Saving(SQLModel, table=True):
+    __tablename__ = "savings"  # nombre exacto de la tabla
+    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
+    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    amount: Decimal = Field(sa_column=Column("amount", Numeric(10, 2), nullable=False))
+    category: str = Field(sa_column=Column("category", String(100), nullable=False))
+
+class Investment(SQLModel, table=True):
+    __tablename__ = "investments"  # nombre exacto de la tabla
+    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
+    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    amount: Decimal = Field(sa_column=Column("amount", Numeric(10, 2), nullable=False))
+    category: str = Field(sa_column=Column("category", String(100), nullable=False))
+
+
+class ExpenseGoal(SQLModel, table=True):
+    __tablename__ = "expensegoals"
+    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
+    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    value: Decimal = Field(sa_column=Column("value", Numeric(5, 2), nullable=False))
+
+class SavingGoal(SQLModel, table=True):
+    __tablename__ = "savinggoals"
+    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
+    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    value: Decimal = Field(sa_column=Column("value", Numeric(5, 2), nullable=False))
+
+
+class InvestmentGoal(SQLModel, table=True):
+    __tablename__ = "investmentgoals"
+    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
+    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    value: Decimal = Field(sa_column=Column("value", Numeric(5, 2), nullable=False))

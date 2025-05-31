@@ -1,11 +1,13 @@
 # main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Session, select
 
 from app.database import engine, get_session
 from app.routers.auth import router as auth_router
 from app.routers.users import router as users_router
+from app.routers.dashboard import router as dashboard_router
+
 
 app = FastAPI()
 
@@ -26,6 +28,8 @@ SQLModel.metadata.create_all(engine)
 
 app.include_router(auth_router)
 app.include_router(users_router)
+app.include_router(dashboard_router)
+
 
 @app.get("/")
 async def root():

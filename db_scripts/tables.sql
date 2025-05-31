@@ -63,3 +63,5 @@ CREATE TABLE InvestmentGoals (
     PRIMARY KEY (date, userId),
     FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
 );
+
+
