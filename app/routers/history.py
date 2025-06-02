@@ -46,6 +46,11 @@ class GoalHistoryEntry(BaseModel):
     actual_value: float
     met: bool
 
+class GoalHistoryResponse(BaseModel):
+    entries: List[GoalHistoryEntry]
+    total_goal_value: float
+    average_goal_value: float
+    goal_met_percentage: float
 
 # ─── Función auxiliar para calcular fecha de inicio ───────────────────────────────
 
@@ -60,7 +65,7 @@ def _compute_start_date(period_months):
 
 @router.get(
     "/",
-    response_model=Union[SimpleHistoryResponse, List[GoalHistoryEntry]]
+    response_model=Union[SimpleHistoryResponse, GoalHistoryResponse]
 )
 def get_history(
     *,
@@ -151,7 +156,7 @@ def get_history(
             select(
                 extract("year", GoalModel.date).label("year"),
                 extract("month", GoalModel.date).label("month"),
-                GoalModel.value.label("goal_value"),
+                GoalModel.value.label("goal_percentage"),
             )
             .where(
                 GoalModel.user_id == user_id,
@@ -160,6 +165,20 @@ def get_history(
             .order_by(extract("year", GoalModel.date), extract("month", GoalModel.date))
         )
         goals_rows = session.exec(stmt_goals).all()
+
+        stmt_incomes = (
+            select(
+                extract("year", Income.date).label("year"),
+                extract("month", Income.date).label("month"),
+                func.coalesce(func.sum(Income.amount), 0).label("income"),
+            )
+            .where(
+                Income.user_id == user_id,
+                Income.date >= start_date
+            )
+            .group_by(extract("year", Income.date), extract("month", Income.date))
+        )
+        income_rows = session.exec(stmt_incomes).all()
 
         stmt_actuals = (
             select(
@@ -175,26 +194,37 @@ def get_history(
         )
         actual_rows = session.exec(stmt_actuals).all()
 
+        income_map = {(int(r.year), int(r.month)): float(r.income) for r in income_rows}
+        actual_map = {(int(r.year), int(r.month)): float(r.actual_sum) for r in actual_rows}
 
-        actual_map = {
-            (int(r.year), int(r.month)): float(r.actual_sum) for r in actual_rows
-        }
+        entries = []
+        met_count = 0
 
-        result: List[GoalHistoryEntry] = []
         for row in goals_rows:
             yr = int(row.year)
             mo = int(row.month)
-            gv = float(row.goal_value)
-            av = actual_map.get((yr, mo), 0.0)
-            met_flag = (av >= gv)
-            result.append(
-                GoalHistoryEntry(
-                    year=yr,
-                    month=mo,
-                    goal_value=gv,
-                    actual_value=av,
-                    met=met_flag
-                )
-            )
+            percentage = float(row.goal_percentage) / 100
+            income = income_map.get((yr, mo), 0.0)
+            goal_value = round(income * percentage, 2)
+            actual_value = actual_map.get((yr, mo), 0.0)
+            met_flag = actual_value >= goal_value
+            if met_flag:
+                met_count += 1
+            entries.append(GoalHistoryEntry(
+                year=yr,
+                month=mo,
+                goal_value=goal_value,
+                actual_value=actual_value,
+                met=met_flag
+            ))
 
-        return result
+        total_goal_value = round(sum(e.goal_value for e in entries), 2)
+        average_goal_value = round(total_goal_value / len(entries), 2) if entries else 0.0
+        goal_met_percentage = round((met_count / len(entries)) * 100, 1) if entries else 0.0
+
+        return GoalHistoryResponse(
+            entries=entries,
+            total_goal_value=total_goal_value,
+            average_goal_value=average_goal_value,
+            goal_met_percentage=goal_met_percentage
+        )
