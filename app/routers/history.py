@@ -1,6 +1,6 @@
 from datetime import date as pydate
 from dateutil.relativedelta import relativedelta
-from typing import List, Literal
+from typing import List, Literal, Union
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -33,6 +33,12 @@ class SimpleHistoryEntry(BaseModel):
     total: float
 
 
+class SimpleHistoryResponse(BaseModel):
+    entries: List[SimpleHistoryEntry]
+    total_sum: float
+    average: float
+
+
 class GoalHistoryEntry(BaseModel):
     year: int
     month: int
@@ -44,7 +50,6 @@ class GoalHistoryEntry(BaseModel):
 # ─── Función auxiliar para calcular fecha de inicio ───────────────────────────────
 
 def _compute_start_date(period_months):
-
     period_months = int(period_months)
     today = pydate.today()
     start = today - relativedelta(months=period_months)
@@ -53,12 +58,9 @@ def _compute_start_date(period_months):
 
 # ─── Ruta GET /history/ ──────────────────────────────────────────────────────────
 
-# Los meses estan en String por un problema que tuve con el Literal ese
-# Aqui fue donde encontre la solucion https://github.com/fastapi/fastapi/discussions/8966
-
 @router.get(
     "/",
-    response_model=List[SimpleHistoryEntry] | List[GoalHistoryEntry]
+    response_model=Union[SimpleHistoryResponse, List[GoalHistoryEntry]]
 )
 def get_history(
     *,
@@ -77,7 +79,6 @@ def get_history(
     ),
     session: Session = Depends(get_session),
 ):
-
     stmt_user = select(User).where(User.email == email)
     user = session.exec(stmt_user).one_or_none()
     if not user:
@@ -105,12 +106,18 @@ def get_history(
                 Model.user_id == user_id,
                 Model.date >= start_date
             )
-            .group_by(extract("year", Model.date), extract("month", Model.date))
-            .order_by(extract("year", Model.date), extract("month", Model.date))
+            .group_by(
+                extract("year", Model.date),
+                extract("month", Model.date)
+            )
+            .order_by(
+                extract("year", Model.date),
+                extract("month", Model.date)
+            )
         )
         rows = session.exec(stmt).all()
 
-        return [
+        entries = [
             SimpleHistoryEntry(
                 year=int(r.year),
                 month=int(r.month),
@@ -118,6 +125,19 @@ def get_history(
             )
             for r in rows
         ]
+
+        if entries:
+            total_sum = sum(entry.total for entry in entries)
+            average = round(total_sum / len(entries), 2)
+        else:
+            total_sum = 0.0
+            average = 0.0
+
+        return SimpleHistoryResponse(
+            entries=entries,
+            total_sum=total_sum,
+            average=average
+        )
 
     else:
         goal_map = {
