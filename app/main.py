@@ -7,6 +7,7 @@ from app.database import engine, get_session
 from app.routers.auth import router as auth_router
 from app.routers.users import router as users_router
 from app.routers.dashboard import router as dashboard_router
+from app.routers import history
 
 
 app = FastAPI()
@@ -29,6 +30,7 @@ SQLModel.metadata.create_all(engine)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(dashboard_router)
+app.include_router(history.router)
 
 
 @app.get("/")
