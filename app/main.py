@@ -9,6 +9,7 @@ from app.routers.users import router as users_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.goals import router as goals_router
 from app.routers import history
+from app.routers import profile
 
 
 app = FastAPI()
@@ -33,6 +34,7 @@ app.include_router(users_router)
 app.include_router(dashboard_router)
 app.include_router(history.router)
 app.include_router(goals_router)
+app.include_router(profile.router)
 
 
 @app.get("/")

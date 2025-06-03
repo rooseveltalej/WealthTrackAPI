@@ -1,4 +1,3 @@
-# app/routers/users.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import select, Session
 
