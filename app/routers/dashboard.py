@@ -148,7 +148,7 @@ def get_dashboard_data_by_query(
     )
     expenses_rows = session.exec(stmt_expenses_list).all()
     expenses_list = [
-        {"date": e.date.isoformat(), "amount": float(e.amount), "category": e.category}
+        {"id": e.id, "date": e.date.isoformat(), "amount": float(e.amount), "category": e.category} # Añadir "id": e.id
         for e in expenses_rows
     ]
 
@@ -163,9 +163,10 @@ def get_dashboard_data_by_query(
     )
     savings_rows = session.exec(stmt_savings_list).all()
     savings_list = [
-        {"date": s.date.isoformat(), "amount": float(s.amount), "category": s.category}
+        {"id": s.id, "date": s.date.isoformat(), "amount": float(s.amount), "category": s.category} # Añadir "id": s.id
         for s in savings_rows
     ]
+
 
     # 12) Listado de inversiones individuales
     stmt_investments_list = (
@@ -178,9 +179,10 @@ def get_dashboard_data_by_query(
     )
     investments_rows = session.exec(stmt_investments_list).all()
     investments_list = [
-        {"date": i.date.isoformat(), "amount": float(i.amount), "category": i.category}
+        {"id": i.id, "date": i.date.isoformat(), "amount": float(i.amount), "category": i.category} # Añadir "id": i.id
         for i in investments_rows
     ]
+
 
     # 13) Distribución de gastos por categoría
     stmt_cat_expenses = (
