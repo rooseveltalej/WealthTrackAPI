@@ -4,6 +4,7 @@ from pydantic import BaseModel, validator
 from decimal import Decimal
 from datetime import date as pydate, datetime
 from enum import Enum
+from typing import Optional
 
 from app.database import get_session
 from app.models import Investment, User
@@ -18,16 +19,21 @@ class InvestmentCategory(str, Enum):
 
 class InvestmentCreate(BaseModel):
     user_id: int
-    date: str # Se espera una cadena de texto
+    date: pydate
     amount: Decimal
     category: InvestmentCategory
 
+# Modelo para la actualización
+class InvestmentUpdate(BaseModel):
+    date: Optional[pydate] = None
+    amount: Optional[Decimal] = None
+    category: Optional[InvestmentCategory] = None
+
     @validator('amount')
     def amount_must_be_positive(cls, v):
-        if v < 0:
+        if v is not None and v < 0:
             raise ValueError('Amount cannot be negative')
         return v
-
 
 router = APIRouter(prefix="/investment", tags=["investment"])
 
@@ -36,22 +42,34 @@ def create_investment(investment_in: InvestmentCreate, session: Session = Depend
     user = session.get(User, investment_in.user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    db_investment = Investment.from_orm(investment_in)
+    session.add(db_investment)
+    session.commit()
+    session.refresh(db_investment)
+    return db_investment
 
-    try:
-        parsed_date = datetime.strptime(investment_in.date, '%Y-%m-%d').date()
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Invalid date format. Use YYYY-MM-DD.")
-
-    # Creamos el objeto para la BD con la fecha ya procesada
-    db_investment = Investment(
-        user_id=investment_in.user_id,
-        date=parsed_date,
-        amount=investment_in.amount,
-        category=investment_in.category
-    )
-
+@router.put("/{investment_id}", response_model=Investment)
+def update_investment(investment_id: int, investment_in: InvestmentUpdate, session: Session = Depends(get_session)):
+    db_investment = session.get(Investment, investment_id)
+    if not db_investment:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    
+    investment_data = investment_in.dict(exclude_unset=True)
+    for key, value in investment_data.items():
+        setattr(db_investment, key, value)
 
     session.add(db_investment)
     session.commit()
     session.refresh(db_investment)
     return db_investment
+
+@router.delete("/{investment_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_investment(investment_id: int, session: Session = Depends(get_session)):
+    db_investment = session.get(Investment, investment_id)
+    if not db_investment:
+        raise HTTPException(status_code=404, detail="Investment not found")
+    
+    session.delete(db_investment)
+    session.commit()
+    return
