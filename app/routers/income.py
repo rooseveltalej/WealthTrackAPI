@@ -43,9 +43,9 @@ router = APIRouter(
     tags=["income"],
 )
 
-@router.post("/", response_model=IncomeRead, status_code=status.HTTP_200_OK)
-def upsert_income_revised( # Renamed function from previous examples if needed
-    income_payload: IncomeCreateBody, # Pydantic validates this first
+@router.post("/", response_model=IncomeRead, status_code=status.HTTP_201_CREATED) # Cambiado status code a 201
+def create_income( # Renombrado para mayor claridad
+    income_payload: IncomeCreateBody,
     session: Session = Depends(get_session)
 ):
     user = session.get(User, income_payload.user_id)
@@ -55,34 +55,22 @@ def upsert_income_revised( # Renamed function from previous examples if needed
             detail=f"User with id {income_payload.user_id} not found"
         )
 
-    # Date is validated as a string by Pydantic model, parse it here for DB
     try:
+        # Pydantic ya no valida el formato de fecha, lo hacemos aquí
         parsed_date = datetime.strptime(income_payload.date, "%Y-%m-%d").date()
     except ValueError:
-        # This case should ideally be caught by the Pydantic validator.
-        # If it reaches here, it implies a logic flaw or bypass of Pydantic validation for the format.
-        raise HTTPException(status_code=422, detail="Invalid date string passed after Pydantic validation.") # Should not happen
-    
-    # Amount is validated (non-negative) and Pydantic tries to convert to Decimal.
-    # If income_payload.amount is not a valid Decimal after Pydantic's processing,
-    # the request would have failed before reaching this point (resulting in 422).
-    
-    existing_income = session.get(Income, (parsed_date, income_payload.user_id))
+        raise HTTPException(status_code=422, detail="Invalid date format. Use YYYY-MM-DD.")
 
-    if existing_income:
-        existing_income.amount = income_payload.amount # income_payload.amount is already Decimal
-        db_income = existing_income
-    else:
-        # Create new income record using validated and typed data
-        db_income = Income(
-            user_id=income_payload.user_id,
-            date=parsed_date,
-            amount=income_payload.amount # income_payload.amount is already Decimal
-        )
+    # La lógica de buscar y actualizar se elimina. Siempre creamos uno nuevo.
+    db_income = Income(
+        user_id=income_payload.user_id,
+        date=parsed_date,
+        amount=income_payload.amount
+    )
     
     session.add(db_income)
     session.commit()
     session.refresh(db_income)
     
-    # Return using the IncomeRead model to ensure consistent output
+    # Asegúrate de que IncomeRead no espere un id que no tiene
     return IncomeRead(user_id=db_income.user_id, date=db_income.date, amount=db_income.amount)

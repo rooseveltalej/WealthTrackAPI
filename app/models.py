@@ -25,30 +25,32 @@ class UserCreate(UserBase):
 
 
 class Income(SQLModel, table=True):
-    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
-    user_id: int = Field(
-        sa_column=Column("userid", Integer, primary_key=True)
-    )
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date: pydate
+    user_id: int = Field(foreign_key="users.id")
     amount: Decimal = Field(sa_column=Column(Numeric(10, 2), nullable=False))
 
 class Expense(SQLModel, table=True):
-    __tablename__ = "expenses"  # Minúscula, igual a la tabla real
-    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
-    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    __tablename__ = "expenses"
+    id: Optional[int] = Field(default=None, primary_key=True) 
+    date: pydate
+    user_id: int = Field(foreign_key="users.id")
     amount: Decimal = Field(sa_column=Column("amount", Numeric(10, 2), nullable=False))
     category: str = Field(sa_column=Column("category", String(100), nullable=False))
 
 class Saving(SQLModel, table=True):
-    __tablename__ = "savings"  # nombre exacto de la tabla
-    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
-    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    __tablename__ = "savings"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date: pydate
+    user_id: int = Field(foreign_key="users.id")
     amount: Decimal = Field(sa_column=Column("amount", Numeric(10, 2), nullable=False))
     category: str = Field(sa_column=Column("category", String(100), nullable=False))
 
 class Investment(SQLModel, table=True):
-    __tablename__ = "investments"  # nombre exacto de la tabla
-    date: pydate = Field(sa_column=Column("date", Date, primary_key=True))
-    user_id: int = Field(sa_column=Column("userid", Integer, primary_key=True))
+    __tablename__ = "investments"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    date: pydate
+    user_id: int = Field(foreign_key="users.id")
     amount: Decimal = Field(sa_column=Column("amount", Numeric(10, 2), nullable=False))
     category: str = Field(sa_column=Column("category", String(100), nullable=False))
 

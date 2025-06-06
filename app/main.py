@@ -9,6 +9,9 @@ from app.routers.users import router as users_router
 from app.routers.dashboard import router as dashboard_router
 from app.routers.goals import router as goals_router
 from app.routers.income import router as income_router # New Import
+from app.routers.expense import router as expense_router
+from app.routers.saving import router as saving_router
+from app.routers.investment import router as investment_router
 from app.routers import history
 from app.routers import profile
 
@@ -37,6 +40,9 @@ app.include_router(history.router)
 app.include_router(goals_router)
 app.include_router(profile.router)
 app.include_router(income_router)
+app.include_router(expense_router)
+app.include_router(saving_router)
+app.include_router(investment_router)
 
 
 @app.get("/")
