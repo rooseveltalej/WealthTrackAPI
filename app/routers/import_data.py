@@ -41,22 +41,28 @@ def _upsert_goal(session: Session, Model, user_id: int, date: datetime.date, val
 
 # Función auxiliar para 'upsert' de ingresos
 def _upsert_income(session: Session, user_id: int, date: datetime.date, amount: Decimal):
-    # En el modelo actual, Income no tiene ID y la PK es (date, user_id).
-    # Para la regla "un único valor por mes", primero borramos los existentes para ese mes.
     year = date.year
     month = date.month
     
-    stmt_delete = (
-        Income.__table__.delete()
-        .where(Income.user_id == user_id)
-        .where(extract("year", Income.date) == year)
-        .where(extract("month", Income.date) == month)
-    )
-    session.exec(stmt_delete)
-    
-    # Insertamos el nuevo
-    new_income = Income(user_id=user_id, date=date, amount=amount)
-    session.add(new_income)
+    # Busca si ya existe una entrada para ese mes y usuario
+    existing_income = session.exec(
+        select(Income).where(
+            Income.user_id == user_id,
+            extract("year", Income.date) == year,
+            extract("month", Income.date) == month,
+        )
+    ).first()
+
+    if existing_income:
+        # Si existe, la actualiza
+        existing_income.date = date
+        existing_income.amount = amount
+        session.add(existing_income)
+    else:
+        # Si no existe, crea una nueva
+        new_income = Income(user_id=user_id, date=date, amount=amount)
+        session.add(new_income)
+
 
 
 @router.post("/csv")
