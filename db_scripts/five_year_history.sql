@@ -625,6 +625,8 @@ INSERT INTO Expenses (date, user_id, amount, category) VALUES ('2025-05-28', 2, 
 
 
 
+
+
 INSERT INTO Savings (date, user_id, amount, category) VALUES ('2020-06-03', 2, 28090.25, 'mantenimiento');
 INSERT INTO Savings (date, user_id, amount, category) VALUES ('2020-06-09', 2, 19616.21, 'otros');
 INSERT INTO Savings (date, user_id, amount, category) VALUES ('2020-06-13', 2, 30746.98, 'otros');
