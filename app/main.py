@@ -12,6 +12,7 @@ from app.routers.income import router as income_router # New Import
 from app.routers.expense import router as expense_router
 from app.routers.saving import router as saving_router
 from app.routers.investment import router as investment_router
+from app.routers import import_data
 from app.routers import history
 from app.routers import profile
 
@@ -43,6 +44,7 @@ app.include_router(income_router)
 app.include_router(expense_router)
 app.include_router(saving_router)
 app.include_router(investment_router)
+app.include_router(import_data.router)
 
 
 @app.get("/")
